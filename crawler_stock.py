@@ -7,6 +7,7 @@ from pypinyin import lazy_pinyin
 from lxml import etree
 from bs4 import BeautifulSoup
 
+EXCHANGE_RATE = {"HK":0.88,"NY": 6.84}
 class spider(object):
     def __init__(self, name):
         self.url = "https://cn.investing.com/instruments/HistoricalDataAjax"
@@ -80,6 +81,8 @@ class spider(object):
         data_pattern["curr_id"] = pairId
         data_pattern["smlID"] = smlId
         data_pattern["header"] = header
+        market = selector.xpath("//*[@id=\"DropdownBtn\"]/i[1]/text()")[0]
+        self.market = "NY" if market == "纽约" else "HK"
         return data_pattern
 
     def requestURL(self, data):
@@ -107,6 +110,8 @@ class spider(object):
             elif index == length - 1:
                 continue  # 最值数据
             else:
+                for i in range(1,5):
+                    data[i] = float(data[i]) * EXCHANGE_RATE[self.market]
                 data_list.append(data)
         data_frame = pd.DataFrame(data_list, columns=columns)
         return data_frame
@@ -141,6 +146,5 @@ if __name__ == "__main__":
     for name in names:
         stock_spider = spider(name)
         data = stock_spider.constructData(data_pattern)  # 获取模板需要填入的数据curr_id\smlID\header
-        print(data)
         stock_spider.run(data)
         time.sleep(10)  # 休眠10秒
